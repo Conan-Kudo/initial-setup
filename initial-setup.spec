@@ -1,3 +1,6 @@
+# Enable X11 for RHEL 9 and older only
+%bcond x11 %[0%{?rhel} && 0%{?rhel} < 10]
+
 Summary: Initial system configuration utility
 Name: initial-setup
 URL: https://fedoraproject.org/wiki/InitialSetup
@@ -51,6 +54,19 @@ Suggests: %{name}-gui-wayland-generic
 The initial-setup-gui package contains a graphical user interface for the
 initial-setup utility.
 
+%package gui-wayland-generic
+Summary: Run the initial-setup GUI in Wayland
+Requires: %{name}-gui = %{version}-%{release}
+Requires: weston
+Requires: xorg-x11-server-Xwayland
+
+Provides:  firstboot(gui-backend)
+Conflicts: firstboot(gui-backend)
+
+%description gui-wayland-generic
+%{summary}.
+
+%if %{with x11}
 %package gui-xorg
 Summary: Run the initial-setup GUI in Xorg
 Requires: %{name}-gui = %{version}-%{release}
@@ -64,19 +80,7 @@ RemovePathPostfixes: .guixorg
 
 %description gui-xorg
 %{summary}.
-
-%package gui-wayland-generic
-Summary: Run the initial-setup GUI in Wayland
-Requires: %{name}-gui = %{version}-%{release}
-Requires: weston
-Requires: xorg-x11-server-Xwayland
-
-Provides:  firstboot(gui-backend)
-Conflicts: firstboot(gui-backend)
-RemovePathPostfixes: .guiweston
-
-%description gui-wayland-generic
-%{summary}.
+%endif
 
 %prep
 %autosetup -p 1
@@ -91,8 +95,10 @@ make
 rm -rf %{buildroot}
 make DESTDIR=%{buildroot} install
 
-# Remove the default link, provide subpackages for alternatives
-rm %{buildroot}%{_libexecdir}/%{name}/run-gui-backend
+mkdir -p %{buildroot}%{_datadir}/initial-setup/
+%if %{with x11}
+echo 'INITIAL_SETUP_GUI_BACKEND="xorg"' > %{buildroot}%{_datadir}/initial-setup/gui-backend.guixorg
+%endif
 
 %find_lang %{name}
 
@@ -131,13 +137,17 @@ rm -rf %{buildroot}
 %files gui
 %{_libexecdir}/%{name}/initial-setup-graphical
 %{python3_sitelib}/initial_setup/gui/
-
-%files gui-xorg
-%{_libexecdir}/%{name}/run-gui-backend.guixorg
-%{_libexecdir}/%{name}/firstboot-windowmanager
+%dir %{_datadir}/initial-setup
 
 %files gui-wayland-generic
-%{_libexecdir}/%{name}/run-gui-backend.guiweston
+%{_libexecdir}/%{name}/run-gui-backend-weston
+
+%if %{with x11}
+%files gui-xorg
+%{_libexecdir}/%{name}/run-gui-backend-xorg
+%{_libexecdir}/%{name}/firstboot-windowmanager
+%{_datadir}/initial-setup/gui-backend.guixorg
+%endif
 
 %changelog
 * Wed Jan 03 2024 Martin Kolman <mkolman@redhat.com> - 0.3.99-1

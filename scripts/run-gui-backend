@@ -1,1 +1,8 @@
-run-gui-backend.guiweston
+#!/bin/sh
+
+INITIAL_SETUP_GUI_BACKEND="weston"
+
+if [ -e "/usr/share/initial-setup/gui-backend" ]; then . /usr/share/initial-setup/gui-backend; fi
+if [ -e "/etc/sysconfig/initial-setup-gui-backend" ]; then . /etc/sysconfig/initial-setup-gui-backend; fi
+
+exec "/usr/libexec/initial-setup/run-gui-backend-${INITIAL_SETUP_GUI_BACKEND}"
